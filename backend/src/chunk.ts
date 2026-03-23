@@ -2,21 +2,18 @@ import type { Env } from "./bindings";
 import { WORKERS_AI_LLAMA_3_3 } from "./constants";
 
 const MAX_TEXT_CHARS = 32_000;
-const MIN_WORDS = 7;
-const MAX_WORDS = 15;
+/** Prompt-only targets; the Worker does not reject chunks solely for word count outside this band. */
+const CHUNK_TARGET_MIN_WORDS = 7;
+const CHUNK_TARGET_MAX_WORDS = 30;
 
 const CHUNK_SYSTEM = `You split prose into memorization-sized phrases. Rules:
 - Each chunk must be a single contiguous substring of the user's text (copy verbatim; do not paraphrase).
-- Each chunk must be between ${MIN_WORDS} and ${MAX_WORDS} words inclusive (not fewer, not more).
+- Aim for roughly ${CHUNK_TARGET_MIN_WORDS}-${CHUNK_TARGET_MAX_WORDS} words per chunk when it fits natural boundaries; shorter or longer segments are acceptable if required for coherent breaks.
 - Break only at natural boundaries: commas, periods, semicolons, colons, or complete clauses (never mid-word).
 - Preserve original punctuation and spacing inside each chunk.
 - Cover the entire user text from start to finish with no gaps and no overlap between chunks.
 - Output ONLY valid JSON with this exact shape: {"chunks":["...","..."]}
 - No markdown, no code fences, no commentary.`;
-
-function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length;
-}
 
 /** Best-effort string for Workers AI / upstream failures (e.g. InferenceUpstreamError, code 1031). */
 function formatAiError(e: unknown): string {
@@ -90,16 +87,6 @@ function parseChunksJson(raw: string): string[] {
   return chunks;
 }
 
-function validateChunkSizes(chunks: string[]): string | null {
-  for (let i = 0; i < chunks.length; i++) {
-    const n = wordCount(chunks[i]!);
-    if (n < MIN_WORDS || n > MAX_WORDS) {
-      return `Chunk ${i} has ${n} words; require ${MIN_WORDS}-${MAX_WORDS}.`;
-    }
-  }
-  return null;
-}
-
 export async function semanticChunkWithAi(env: Env, text: string): Promise<string[]> {
   let result: unknown;
   try {
@@ -129,9 +116,6 @@ export async function semanticChunkWithAi(env: Env, text: string): Promise<strin
       throw new Error("Could not parse model JSON");
     }
   }
-
-  const sizeErr = validateChunkSizes(chunks);
-  if (sizeErr) throw new Error(sizeErr);
 
   return chunks;
 }

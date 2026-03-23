@@ -23,8 +23,9 @@ The following components MUST be implemented to satisfy the Cloudflare AI app as
 
 ### Feature A: AI Semantic Chunking
 * **Requirement:** LLM / Workflow
-* **Logic:** Use Llama 3.3 to break long text into "natural" chunks (7-15 words). 
+* **Logic:** Use Llama 3.3 to break long text into "natural" chunks, **aiming** for roughly **7–30 words** per chunk when coherent breaks allow.
 * **Constraint:** Chunks must break at logical points (commas, periods, or complete clauses) rather than arbitrary word counts.
+* **Enforcement:** **Tolerant** — the Worker accepts valid model output (non-empty chunks, parseable JSON) and does **not** reject responses solely because a chunk is slightly outside the 7–30 word target band; natural boundaries take priority over exact length.
 
 ### Feature B: The 3-Step Memorization Engine
 * **Requirement:** User Input / Workflow

@@ -69,8 +69,8 @@ export default function App() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">cf_ai_verbatim</h1>
           <p className="mt-2 text-slate-400">
-            Paste text below. Llama 3.3 (Workers AI) splits it into 7–15 word chunks at
-            natural boundaries; results are stored in D1.
+            Paste text below. Llama 3.3 (Workers AI) aims for ~7–30 word chunks at natural
+            boundaries (tolerant sizing); results are stored in D1.
           </p>
         </div>
 
