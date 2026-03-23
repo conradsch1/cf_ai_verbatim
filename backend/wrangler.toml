@@ -1,0 +1,19 @@
+name = "cf-ai-verbatim"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "db"
+database_name = "cf_ai_verbatim"
+database_id = "8b75fec7-0ef6-4da8-ae24-30c185f0cdeb"
+
+[[durable_objects.bindings]]
+name = "MEMORIZATION_SESSION"
+class_name = "MemorizationSession"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["MemorizationSession"]

@@ -1,0 +1,17 @@
+# Auto-Logging Requirement
+
+You are assisting me in building a Cloudflare AI application for an internship assignment. One of the strict requirements is that I must log all AI prompts used during development into a file named `PROMPTS.md`.
+
+To help me fulfill this requirement, you must obey the following rule:
+
+Whenever I give you a prompt that results in generating new features, making architectural decisions, or performing significant debugging/refactoring, you must AUTOMATICALLY append a log entry to `PROMPTS.md` at the end of your task. 
+
+Do not log trivial questions (e.g., "how do I run this command?"), but do log anything that changes the codebase.
+
+Format the appended entry exactly like this:
+
+### Feature/Task: [Short name of what we are working on]
+* **Goal:** [Brief description of what I asked you to do]
+* **My Prompt:** "[Insert a summary or the exact text of my prompt to you]"
+* **Outcome:** [Brief description of the files you modified or the code you generated]
+---

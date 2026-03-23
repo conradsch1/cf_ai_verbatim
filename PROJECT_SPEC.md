@@ -1,0 +1,55 @@
+# Project Specification: cf_ai_verbatim
+
+## 0. Project Overview
+This is an AI-powered text memorization application built for a Cloudflare internship assignment. It generalizes the "3-step memorization method" (progressive fading) to help users memorize long, complex texts (like creeds, speeches, or poetry) word-for-word.
+
+## 1. Strict Assignment Requirements
+The following components MUST be implemented to satisfy the Cloudflare AI app assignment:
+* **LLM:** Use Llama 3.3 (via Workers AI) or an external LLM for core intelligence.
+* **Workflow / Coordination:** Use Cloudflare Workflows, Workers, or Durable Objects to coordinate the app logic.
+* **User Input:** Must support input via **Chat or Voice** (using Pages or Realtime).
+* **Memory or State:** Must maintain state across sessions.
+* **Repository Prefix:** The repository name must start with `cf_ai_`.
+* **Documentation:** Must include a `README.md` with setup instructions and a `PROMPTS.md` containing all AI prompts used during development.
+
+## 2. The Core User Journey
+1.  **Input:** User provides a long text string.
+2.  **Processing (LLM):** AI chunks the text into semantic, manageable units.
+3.  **Practice (User Input):** User performs a 3-step fading exercise for each chunk.
+4.  **Assistance (Chat/Voice):** AI provides context-aware hints upon request if the user is stuck.
+5.  **Review (Memory/State):** User self-evaluates performance (SM-2 algorithm) to schedule future reviews.
+
+## 3. Feature Specifications & Logic
+
+### Feature A: AI Semantic Chunking
+* **Requirement:** LLM / Workflow
+* **Logic:** Use Llama 3.3 to break long text into "natural" chunks (7-15 words). 
+* **Constraint:** Chunks must break at logical points (commas, periods, or complete clauses) rather than arbitrary word counts.
+
+### Feature B: The 3-Step Memorization Engine
+* **Requirement:** User Input / Workflow
+* **Mechanism:** Progressive Fading.
+    * **Step 1 (Familiarize):** Full text is visible.
+    * **Step 2 (Partial Recall):** ~50% of words are hidden.
+    * **Step 3 (Mastery):** 100% of words are hidden.
+* **Validation Logic:** User types the **first letter** of each word and **all punctuation**. 
+    * *Technical Implementation:* Use regex `/\b\w|[^\w\s]/g` to extract expected keystrokes. Comparison must be **case-insensitive**.
+
+### Feature C: Context-Aware Hints
+* **Requirement:** LLM / Chat Input
+* **Logic:** If a user is stuck, they can request a hint via a chat-style interface.
+* **LLM Prompting:** The AI should provide a synonym, rhyme, or context clue for the specific word *without* revealing the word itself.
+
+### Feature D: Spaced Repetition (SM-2 Algorithm)
+* **Requirement:** Memory or State
+* **Logic:** After Step 3, the user chooses from: **Fail, Hard, Medium, Easy**.
+* **Algorithm (SM-2):**
+    * **Quality Scores ($q$):** Fail=1, Hard=3, Medium=4, Easy=5.
+    * **Interval ($I$):** If $q < 3$, reset. If $q \ge 3$, scale $I$ by the Easiness Factor ($EF$).
+    * **EF Formula:** $EF = EF + (0.1 - (5 - q) \times (0.08 + (5 - q) \times 0.02))$. 
+    * *Constraint:* $EF$ must not drop below 1.3.
+
+## 4. Agent Instructions
+* **Auto-Logging:** You MUST append the prompt used for every major code generation or refactor to `PROMPTS.md`.
+* **Cloudflare Context:** Prioritize using Cloudflare Workers, Durable Objects, and Workers AI.
+* **Documentation:** Help draft the `README.md` to ensure it includes clear "running instructions" as required by the assignment.
