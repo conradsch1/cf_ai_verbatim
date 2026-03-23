@@ -37,4 +37,20 @@ This document tracks the AI assistance and prompts used to develop this applicat
 * **Goal:** Shift chunking to a tolerant policy: LLM aims for 7–30 words; remove strict per-chunk word-count rejection in the Worker; update [`PROJECT_SPEC.md`](PROJECT_SPEC.md) and [`PROMPTS.md`](PROMPTS.md).
 * **My Prompt:** "Let's change the chunking policy the to be tolerant, not strict. The LLM should aim for chunks of size 7-30 words. Please also update the PROJECT_SPEC accordingly also include this planning prompt in the PROMPTS.md"
 * **Outcome:** [`backend/src/chunk.ts`](backend/src/chunk.ts): `CHUNK_TARGET_MIN_WORDS`/`CHUNK_TARGET_MAX_WORDS` (7/30), prompt-only; rewrote `CHUNK_SYSTEM` for tolerant aiming; removed `validateChunkSizes` and `wordCount`. [`PROJECT_SPEC.md`](PROJECT_SPEC.md): Feature A updated to 7–30 aim + enforcement bullet. [`frontend/src/App.tsx`](frontend/src/App.tsx): UI copy. Supersedes strict 7–15 (later 7–15 inclusive) validation described in earlier Phase 1–2 log entry.
+
+### Feature/Task: Phase 3 — 3-step practice (Feature B)
+* **Goal:** Implement progressive fading practice per [`PROJECT_SPEC.md`](PROJECT_SPEC.md) Feature B: keystrokes from `/\b\w|[^\w\s]/g`, case-insensitive compare; whitespace-delimited masking for Step 2 with parity flip on retry; DO-backed `currentChunkIndex` / step / `step2ParityVariant`; Hono routes and minimal practice UI with Check and Retry.
+* **My Prompt:** "Phase 3: 3-Step Memorization Engine (Feature B) — Implement the plan as specified… Mark todos… complete all to-dos."
+* **Outcome:** Added [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts), [`backend/src/mask.ts`](backend/src/mask.ts), [`backend/src/practice-api.ts`](backend/src/practice-api.ts); extended [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts) (practice state + `/practice/sync`, `/practice/state`, `/practice/advance`, `/practice/retry`); [`backend/src/index.ts`](backend/src/index.ts) (`GET /api/session/:sessionId/chunks`, `GET`/`POST` practice routes); [`backend/src/chunk.ts`](backend/src/chunk.ts) exports `sessionExists`. [`frontend/src/App.tsx`](frontend/src/App.tsx): Start practice, masked display, input, Check, Retry. [`README.md`](README.md): practice endpoints summary.
+
+### Feature/Task: Practice validation — first letter only (no punctuation keystrokes)
+* **Goal:** Align Feature B validation with masking: user types only the first letter of each whitespace-delimited word; do not require typing punctuation as separate keystrokes.
+* **My Prompt:** "Change the spec so that user doesn't have to type puncutation. Since punctuation is part of word it is adjcent to just require the user to type the first letter of that word."
+* **Outcome:** Updated [`PROJECT_SPEC.md`](PROJECT_SPEC.md) Feature B validation; [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts) (`expectedKeystrokes` from whitespace tokens + first `\w` per token); [`frontend/src/App.tsx`](frontend/src/App.tsx) practice hint copy; this PROMPTS entry.
+
+### Feature/Task: Practice feedback on failed check
+* **Goal:** Return structured mismatch details on `POST /api/practice/:sessionId/check` when `correct: false` (length vs first differing letter/word index); surface in UI without dumping the full expected sequence.
+* **My Prompt:** "Inform users what they missed on a failed check — Implement the plan as specified…"
+* **Outcome:** [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts) (`keystrokeMismatchFeedback`, `KeystrokeMismatchFeedback`); [`backend/src/practice-api.ts`](backend/src/practice-api.ts) + [`backend/src/index.ts`](backend/src/index.ts); [`frontend/src/App.tsx`](frontend/src/App.tsx) (`formatMismatchFeedback`); [`PROJECT_SPEC.md`](PROJECT_SPEC.md) wrong-answer feedback bullet; this entry.
+
 ---

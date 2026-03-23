@@ -120,7 +120,7 @@ export async function semanticChunkWithAi(env: Env, text: string): Promise<strin
   return chunks;
 }
 
-async function sessionExists(db: D1Database, id: string): Promise<boolean> {
+export async function sessionExists(db: D1Database, id: string): Promise<boolean> {
   const row = await db
     .prepare("SELECT 1 AS ok FROM sessions WHERE id = ? LIMIT 1")
     .bind(id)

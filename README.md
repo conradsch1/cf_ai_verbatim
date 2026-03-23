@@ -9,7 +9,7 @@ AI-powered verbatim text memorization (Cloudflare internship assignment). Users 
   - `@cf/meta/llama-3.3-70b-instruct-fp8-fast` (LLM)
   - `@cf/openai/whisper-large-v3-turbo` (speech-to-text)  
   Constants: [`backend/src/constants.ts`](backend/src/constants.ts).
-- **State:** [D1](https://developers.cloudflare.com/d1/) database binding `db` in [`backend/wrangler.toml`](backend/wrangler.toml). [Durable Object](https://developers.cloudflare.com/durable-objects/) **`MemorizationSession`** (`MEMORIZATION_SESSION`) for session coordination and SM-2 state stubs — [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts), SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts).
+- **State:** [D1](https://developers.cloudflare.com/d1/) database binding `db` in [`backend/wrangler.toml`](backend/wrangler.toml). [Durable Object](https://developers.cloudflare.com/durable-objects/) **`MemorizationSession`** (`MEMORIZATION_SESSION`) stores practice progress (chunk index, step 1–3, Step 2 mask parity for retries) plus SM-2 stubs — [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts), SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts). Practice helpers: [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts), [`backend/src/mask.ts`](backend/src/mask.ts), [`backend/src/practice-api.ts`](backend/src/practice-api.ts).
 - **Web UI:** [`frontend/`](frontend/) — Vite + React + TypeScript + Tailwind CSS v4 (`@tailwindcss/vite`). Dev server proxies `/api` to the Worker default port (8787).
 
 ```mermaid
@@ -59,7 +59,7 @@ flowchart LR
    npm run dev:backend
    ```
 
-   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1; `POST /api/hint` and `POST /api/review` are still placeholders; `GET /api/health` for checks.
+   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1. **Practice (Feature B):** `GET /api/session/:sessionId/chunks`, `GET /api/practice/:sessionId` (masked text + step), `POST /api/practice/:sessionId/check` (body `{ "input": "..." }` — advances only on correct answer), `POST /api/practice/:sessionId/retry` (Step 2 toggles which words are hidden). `POST /api/hint` and `POST /api/review` are still placeholders; `GET /api/health` for checks.
 
 5. **Run the frontend:**
 

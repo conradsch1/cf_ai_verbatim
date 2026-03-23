@@ -31,10 +31,13 @@ The following components MUST be implemented to satisfy the Cloudflare AI app as
 * **Requirement:** User Input / Workflow
 * **Mechanism:** Progressive Fading.
     * **Step 1 (Familiarize):** Full text is visible.
-    * **Step 2 (Partial Recall):** ~50% of words are hidden.
+    * **Step 2 (Partial Recall):** **Every other word** is hidden (alternating by index), not a random half. For masking, a **word** is a **whitespace-delimited** token (e.g. `well-known` is one token; `say,` is one token). Validation uses the **same** tokenization: the user types only the **first letter** of each token (punctuation attached to a token is not typed separately).
     * **Step 3 (Mastery):** 100% of words are hidden.
-* **Validation Logic:** User types the **first letter** of each word and **all punctuation**. 
-    * *Technical Implementation:* Use regex `/\b\w|[^\w\s]/g` to extract expected keystrokes. Comparison must be **case-insensitive**.
+* **Retry:** If validation fails, the user can **retry the same step** before moving on; the app does **not** advance to the next step or chunk until the input is correct (or the user abandons flow elsewhere, if you add that later).
+* **Wrong-answer feedback:** A failed check (no step advance) may return **structured mismatch feedback**—e.g. letter count vs expected, or first differing word position and letters—so the user knows what went wrong without revealing the full answer as a cheat sheet.
+* **Step 2 retry behavior:** Each time the user **retries** Step 2 on the same chunk (after a failed check), **which** words are hidden **flips** (e.g. swap odd/even index parity) so a different alternating pattern is shown.
+* **Validation Logic:** User types the **first letter** of each whitespace-delimited word (same tokens as Step 2 masking). **Do not** require typing punctuation as its own keystrokes—commas, quotes, etc. that sit next to letters are covered by typing the first letter of that token.
+    * *Technical Implementation:* Split the chunk on whitespace; for each non-empty token, take the first “word character” match (e.g. first `\w` in the token, which skips leading quotes before the first letter). Concatenate those characters in order. Comparison must be **case-insensitive**; whitespace in the user’s input is ignored.
 
 ### Feature C: Context-Aware Hints
 * **Requirement:** LLM / Chat Input
