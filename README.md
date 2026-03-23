@@ -59,7 +59,7 @@ flowchart LR
    npm run dev:backend
    ```
 
-   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1. **Practice (Feature B):** `GET /api/session/:sessionId/chunks`, `GET /api/practice/:sessionId` (masked text + step), `POST /api/practice/:sessionId/check` (body `{ "input": "..." }` — advances only on correct answer), `POST /api/practice/:sessionId/retry` (Step 2 toggles which words are hidden). `POST /api/hint` and `POST /api/review` are still placeholders; `GET /api/health` for checks.
+   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1. **Practice (Feature B):** `GET /api/session/:sessionId/chunks`, `GET /api/practice/:sessionId` (returns `maskedText`, `chunkPlain`, `expectedFirstLetters`, step, chunk index), `POST /api/practice/:sessionId/check` (body `{ "input": "..." }` — advances only on correct answer), `POST /api/practice/:sessionId/retry` (Step 2 toggles which words are hidden). The web UI uses an **inline** practice surface (focus the passage, type first letters in order; it auto-submits when the sequence is complete). `POST /api/hint` and `POST /api/review` are still placeholders; `GET /api/health` for checks.
 
 5. **Run the frontend:**
 

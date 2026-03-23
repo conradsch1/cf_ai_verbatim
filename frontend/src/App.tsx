@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { PracticeInline } from "./PracticeInline";
 
 const SESSION_STORAGE_KEY = "cf_ai_verbatim_session_id";
 
@@ -14,35 +15,22 @@ type PracticePayload = {
   step2ParityVariant: 0 | 1;
   totalChunks: number;
   maskedText: string;
+  chunkPlain: string;
+  expectedFirstLetters: string;
   completedSession: boolean;
 };
 
-type KeystrokeMismatchFeedback =
-  | { kind: "length"; expectedLength: number; actualLength: number }
-  | {
-      kind: "mismatch";
-      index: number;
-      wordIndex: number;
-      totalWords: number;
-      expectedChar: string | null;
-      actualChar: string | null;
-      expectedLength: number;
-      actualLength: number;
-    };
-
-type CheckResponse =
-  | { ok: true; correct: false; feedback: KeystrokeMismatchFeedback }
-  | { ok: true; correct: true; practice: PracticePayload }
-  | { ok: false; error: string };
-
-function formatMismatchFeedback(f: KeystrokeMismatchFeedback): string {
-  if (f.kind === "length") {
-    return `You entered ${f.actualLength} letter${f.actualLength === 1 ? "" : "s"}; this chunk needs ${f.expectedLength}.`;
-  }
-  const ec = f.expectedChar === null ? "(end)" : `"${f.expectedChar}"`;
-  const ac =
-    f.actualChar === null ? "nothing here yet" : `"${f.actualChar}"`;
-  return `First difference at word ${f.wordIndex} of ${f.totalWords}: expected ${ec}, you had ${ac}. Try again or use Retry (Step 2 changes which words are hidden).`;
+function isPracticePayload(
+  data: unknown
+): data is PracticePayload {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "ok" in data &&
+    (data as { ok: unknown }).ok === true &&
+    "chunkPlain" in data &&
+    typeof (data as { chunkPlain: unknown }).chunkPlain === "string"
+  );
 }
 
 export default function App() {
@@ -54,10 +42,10 @@ export default function App() {
 
   const [practice, setPractice] = useState<PracticePayload | null>(null);
   const [practiceLoading, setPracticeLoading] = useState(false);
-  const [practiceInput, setPracticeInput] = useState("");
   const [practiceError, setPracticeError] = useState<string | null>(null);
   const [checkLoading, setCheckLoading] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+  const [practiceResetSignal, setPracticeResetSignal] = useState(0);
 
   useEffect(() => {
     const stored = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -73,8 +61,8 @@ export default function App() {
     setSessionId(null);
     setChunks([]);
     setPractice(null);
-    setPracticeInput("");
     setPracticeError(null);
+    setPracticeResetSignal(0);
     localStorage.removeItem(SESSION_STORAGE_KEY);
   }, []);
 
@@ -83,18 +71,21 @@ export default function App() {
     setPracticeError(null);
     try {
       const res = await fetch(`/api/practice/${encodeURIComponent(sid)}`);
-      const data = (await res.json()) as PracticePayload | { ok: false; error: string };
-      if (!res.ok || !("maskedText" in data) || data.ok !== true) {
+      const data: unknown = await res.json();
+      if (!res.ok || !isPracticePayload(data)) {
         const msg =
-          "error" in data && typeof data.error === "string"
-            ? data.error
+          typeof data === "object" &&
+          data !== null &&
+          "error" in data &&
+          typeof (data as { error: unknown }).error === "string"
+            ? (data as { error: string }).error
             : `Request failed (${res.status})`;
         setPracticeError(msg);
         setPractice(null);
         return;
       }
       setPractice(data);
-      setPracticeInput("");
+      setPracticeResetSignal((n) => n + 1);
     } catch {
       setPracticeError("Network error — is the Worker running on port 8787?");
       setPractice(null);
@@ -131,53 +122,12 @@ export default function App() {
       persistSession(data.sessionId);
       setChunks(data.chunks);
       setPractice(null);
-      setPracticeInput("");
     } catch {
       setError("Network error — is the Worker running on port 8787?");
     } finally {
       setLoading(false);
     }
   }, [text, sessionId, persistSession]);
-
-  const submitCheck = useCallback(async () => {
-    if (!sessionId || !practice || practice.completedSession) return;
-    setPracticeError(null);
-    setCheckLoading(true);
-    try {
-      const res = await fetch(
-        `/api/practice/${encodeURIComponent(sessionId)}/check`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: practiceInput }),
-        }
-      );
-      const data = (await res.json()) as CheckResponse;
-      if (!res.ok || data.ok === false) {
-        const msg =
-          "error" in data && typeof data.error === "string"
-            ? data.error
-            : `Request failed (${res.status})`;
-        setPracticeError(msg);
-        return;
-      }
-      if (!data.correct) {
-        setPracticeError(
-          "feedback" in data && data.feedback
-            ? formatMismatchFeedback(data.feedback)
-            : "Not quite — try again or use Retry (Step 2 changes which words are hidden)."
-        );
-        return;
-      }
-      setPractice(data.practice);
-      setPracticeInput("");
-      setPracticeError(null);
-    } catch {
-      setPracticeError("Network error");
-    } finally {
-      setCheckLoading(false);
-    }
-  }, [sessionId, practice, practiceInput]);
 
   const submitRetry = useCallback(async () => {
     if (!sessionId) return;
@@ -188,16 +138,20 @@ export default function App() {
         `/api/practice/${encodeURIComponent(sessionId)}/retry`,
         { method: "POST" }
       );
-      const data = (await res.json()) as PracticePayload | { ok: false; error: string };
-      if (!res.ok || !("maskedText" in data) || data.ok !== true) {
+      const data: unknown = await res.json();
+      if (!res.ok || !isPracticePayload(data)) {
         const msg =
-          "error" in data && typeof data.error === "string"
-            ? data.error
+          typeof data === "object" &&
+          data !== null &&
+          "error" in data &&
+          typeof (data as { error: unknown }).error === "string"
+            ? (data as { error: string }).error
             : `Request failed (${res.status})`;
         setPracticeError(msg);
         return;
       }
       setPractice(data);
+      setPracticeResetSignal((n) => n + 1);
     } catch {
       setPracticeError("Network error");
     } finally {
@@ -208,6 +162,16 @@ export default function App() {
   const startPractice = useCallback(() => {
     if (sessionId) void fetchPractice(sessionId);
   }, [sessionId, fetchPractice]);
+
+  const handleCheckFailure = useCallback((message: string) => {
+    setPracticeError(message);
+    setPracticeResetSignal((n) => n + 1);
+  }, []);
+
+  const handlePracticeUpdate = useCallback((p: PracticePayload) => {
+    setPractice(p);
+    setPracticeError(null);
+  }, []);
 
   return (
     <div className="min-h-dvh bg-slate-950 text-slate-100">
@@ -290,7 +254,7 @@ export default function App() {
           </section>
         )}
 
-        {practice && (
+        {practice && sessionId && (
           <section className="flex flex-col gap-4 rounded-lg border border-slate-700 bg-slate-900/50 p-4">
             <h2 className="text-lg font-medium text-slate-200">Practice</h2>
             {practice.completedSession ? (
@@ -299,46 +263,27 @@ export default function App() {
               </p>
             ) : (
               <>
-                <p className="text-sm text-slate-400">
-                  Chunk {practice.currentChunkIndex + 1} of {practice.totalChunks} — Step{" "}
-                  {practice.step} of 3
-                </p>
-                <p className="rounded-md border border-slate-600 bg-slate-950/80 px-3 py-3 font-serif text-lg leading-relaxed text-slate-100">
-                  {practice.maskedText}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Type the first letter of each word (same words as the hidden pattern); skip
-                  punctuation. Case-insensitive; spaces in your input are ignored.
-                </p>
-                <input
-                  type="text"
-                  value={practiceInput}
-                  onChange={(e) => setPracticeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void submitCheck();
-                  }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                  placeholder="Your answer…"
-                  autoComplete="off"
-                  spellCheck={false}
+                <PracticeInline
+                  key={`${practice.sessionId}-${practice.currentChunkIndex}-${practice.step}-${practice.step2ParityVariant}-${practiceResetSignal}`}
+                  payload={practice}
+                  sessionId={sessionId}
+                  checkLoading={checkLoading}
+                  setCheckLoading={setCheckLoading}
+                  onPracticeUpdate={handlePracticeUpdate}
+                  onCheckFailure={handleCheckFailure}
                 />
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => void submitCheck()}
-                    disabled={checkLoading || practice.completedSession}
-                    className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {checkLoading ? "Checking…" : "Check"}
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => void submitRetry()}
-                    disabled={retryLoading || practice.completedSession}
+                    disabled={retryLoading || checkLoading || practice.completedSession}
                     className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:opacity-50"
                   >
                     {retryLoading ? "Retry…" : "Retry"}
                   </button>
+                  {checkLoading && (
+                    <span className="self-center text-sm text-slate-400">Checking…</span>
+                  )}
                 </div>
               </>
             )}

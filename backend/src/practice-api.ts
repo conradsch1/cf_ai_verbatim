@@ -19,6 +19,10 @@ export type PracticePayload = {
   step2ParityVariant: 0 | 1;
   totalChunks: number;
   maskedText: string;
+  /** Verbatim chunk for inline practice UI. */
+  chunkPlain: string;
+  /** Concatenation of first `\w` per contributing token; same as server validation. */
+  expectedFirstLetters: string;
   completedSession: boolean;
 };
 
@@ -81,6 +85,37 @@ function currentChunkText(chunks: string[], state: PracticeState): string {
   return chunks[i] ?? "";
 }
 
+function normalizeStep(s: PracticeState["step"]): 1 | 2 | 3 {
+  const n = Number(s);
+  if (n === 1 || n === 2 || n === 3) return n;
+  return 1;
+}
+
+function buildPracticePayload(
+  sessionId: string,
+  chunks: string[],
+  state: PracticeState
+): PracticePayload {
+  const step = normalizeStep(state.step);
+  const chunk = currentChunkText(chunks, state);
+  const maskedText = maskChunkForStep(chunk, step, {
+    step2Parity: state.step2ParityVariant,
+  });
+  const expectedFirstLetters = expectedKeystrokes(chunk);
+  return {
+    ok: true,
+    sessionId,
+    currentChunkIndex: state.currentChunkIndex,
+    step,
+    step2ParityVariant: state.step2ParityVariant,
+    totalChunks: state.totalChunks,
+    maskedText,
+    chunkPlain: chunk,
+    expectedFirstLetters,
+    completedSession: state.completedSession,
+  };
+}
+
 export async function getPracticePayload(
   env: Env,
   sessionId: string
@@ -94,20 +129,7 @@ export async function getPracticePayload(
   }
   const stub = doStub(env, sessionId);
   const state = await syncPracticeDO(stub, chunks.length);
-  const chunk = currentChunkText(chunks, state);
-  const maskedText = maskChunkForStep(chunk, state.step, {
-    step2Parity: state.step2ParityVariant,
-  });
-  return {
-    ok: true,
-    sessionId,
-    currentChunkIndex: state.currentChunkIndex,
-    step: state.step,
-    step2ParityVariant: state.step2ParityVariant,
-    totalChunks: state.totalChunks,
-    maskedText,
-    completedSession: state.completedSession,
-  };
+  return buildPracticePayload(sessionId, chunks, state);
 }
 
 export async function postPracticeCheck(
@@ -145,11 +167,8 @@ export async function postPracticeCheck(
     };
   }
 
-  await advanceDO(stub);
-  const practice = await getPracticePayload(env, sessionId);
-  if ("error" in practice) {
-    return { error: practice.error, status: practice.status };
-  }
+  const newState = await advanceDO(stub);
+  const practice = buildPracticePayload(sessionId, chunks, newState);
   return { ok: true, correct: true, practice };
 }
 

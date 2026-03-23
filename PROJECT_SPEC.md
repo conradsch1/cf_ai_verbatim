@@ -38,6 +38,7 @@ The following components MUST be implemented to satisfy the Cloudflare AI app as
 * **Step 2 retry behavior:** Each time the user **retries** Step 2 on the same chunk (after a failed check), **which** words are hidden **flips** (e.g. swap odd/even index parity) so a different alternating pattern is shown.
 * **Validation Logic:** User types the **first letter** of each whitespace-delimited word (same tokens as Step 2 masking). **Do not** require typing punctuation as its own keystrokes—commas, quotes, etc. that sit next to letters are covered by typing the first letter of that token.
     * *Technical Implementation:* Split the chunk on whitespace; for each non-empty token, take the first “word character” match (e.g. first `\w` in the token, which skips leading quotes before the first letter). Concatenate those characters in order. Comparison must be **case-insensitive**; whitespace in the user’s input is ignored.
+* **Practice UI:** The client may present an **inline, word-by-word** typing flow (cursor moves through every word token, including masked ones; per-word coloring for correct vs incorrect first letters) while still submitting the same concatenated letter sequence to `POST /api/practice/:sessionId/check` when the sequence is complete.
 
 ### Feature C: Context-Aware Hints
 * **Requirement:** LLM / Chat Input
