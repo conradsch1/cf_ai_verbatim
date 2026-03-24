@@ -1,6 +1,6 @@
 # cf_ai_verbatim
 
-AI-powered verbatim text memorization (Cloudflare internship assignment). Users chunk long text, practice with progressive fading, get hints, and schedule reviews with spaced repetition (SM-2).
+AI-powered verbatim text memorization (using Cloudflare's Agents ecosystem). Users chunk long text with Workers AI, practice with progressive fading (3-step recall), and request context-aware hints. Future updates will include **Spaced repetition** using Anki-style review scheduling—see [Roadmap / future work](#roadmap--future-work) for the planned enhancements.
 
 ## Technical Architecture
 
@@ -9,7 +9,7 @@ AI-powered verbatim text memorization (Cloudflare internship assignment). Users 
   - `@cf/meta/llama-3.3-70b-instruct-fp8-fast` (LLM)
   - `@cf/openai/whisper-large-v3-turbo` (speech-to-text)  
   Constants: [`backend/src/constants.ts`](backend/src/constants.ts).
-- **State:** [D1](https://developers.cloudflare.com/d1/) database binding `db` in [`backend/wrangler.toml`](backend/wrangler.toml). [Durable Object](https://developers.cloudflare.com/durable-objects/) **`MemorizationSession`** (`MEMORIZATION_SESSION`) stores practice progress (chunk index, step 1–3, Step 2 mask parity for retries) plus SM-2 stubs — [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts), SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts). Practice helpers: [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts), [`backend/src/mask.ts`](backend/src/mask.ts), [`backend/src/practice-api.ts`](backend/src/practice-api.ts).
+- **State:** [D1](https://developers.cloudflare.com/d1/) database binding `db` in [`backend/wrangler.toml`](backend/wrangler.toml). [Durable Object](https://developers.cloudflare.com/durable-objects/) **`MemorizationSession`** (`MEMORIZATION_SESSION`) stores practice progress (chunk index, step 1–3, Step 2 mask parity for retries) and persists **SM-2 state** as groundwork for a future review API — [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts), SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts). Practice helpers: [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts), [`backend/src/mask.ts`](backend/src/mask.ts), [`backend/src/practice-api.ts`](backend/src/practice-api.ts), [`backend/src/wordPieces.ts`](backend/src/wordPieces.ts). Hints: [`backend/src/hint.ts`](backend/src/hint.ts).
 - **Web UI:** [`frontend/`](frontend/) — Vite + React + TypeScript + Tailwind CSS v4 (`@tailwindcss/vite`). Dev server proxies `/api` to the Worker default port (8787).
 
 ```mermaid
@@ -59,7 +59,7 @@ flowchart LR
    npm run dev:backend
    ```
 
-   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1. **Practice (Feature B):** `GET /api/session/:sessionId/chunks`, `GET /api/practice/:sessionId` (returns `maskedText`, `chunkPlain`, `expectedFirstLetters`, step, chunk index), `POST /api/practice/:sessionId/check` (body `{ "input": "..." }` — advances only on correct answer), `POST /api/practice/:sessionId/retry` (Step 2 toggles which words are hidden). The web UI uses an **inline** practice surface (focus the passage, type first letters in order; it auto-submits when the sequence is complete). `POST /api/hint` and `POST /api/review` are still placeholders; `GET /api/health` for checks.
+   Default: `http://localhost:8787`. `POST /api/chunk` uses Workers AI (Llama 3.3) + D1. **Practice (Feature B):** `GET /api/session/:sessionId/chunks`, `GET /api/practice/:sessionId` (returns `maskedText`, `chunkPlain`, `expectedFirstLetters`, step, chunk index), `POST /api/practice/:sessionId/check` (body `{ "input": "..." }` — advances only on correct answer), `POST /api/practice/:sessionId/retry` (Step 2 toggles which words are hidden). The web UI uses an **inline** practice surface (focus the passage, type first letters in order; it auto-submits when the sequence is complete). **Hints (Feature C):** `POST /api/hint` with JSON body `{ "sessionId": "…", "chunkIndex": 0, "wordIndex": 0 }` — `chunkIndex` must match the server’s current practice chunk, `wordIndex` matches whitespace-delimited word tokens (same as the practice UI). Returns `{ "ok": true, "hint": "…" }` or an error. Implementation: [`backend/src/hint.ts`](backend/src/hint.ts). **`POST /api/review` (Feature D / spaced repetition) is deferred** — returns HTTP **501** with a JSON body pointing to [Roadmap / future work](#roadmap--future-work) below. `GET /api/health` for checks.
 
 5. **Run the frontend:**
 
@@ -70,6 +70,13 @@ flowchart LR
    Default: `http://localhost:5173` — `/api/*` is proxied to the Worker on 8787.
 
 6. **Deploy:** Configure `database_id`, apply **remote** D1 migrations, then run `npm run deploy --workspace=backend` (or `cd backend && npx wrangler deploy`).
+
+## Roadmap / future work
+
+**Additional note (not yet implemented):** Planned updates include:
+
+1. **Saved history** — Let users keep a **history of passages they have chunked** (and related session metadata) so they can reopen past material without re-pasting or re-running the LLM.
+2. **Anki-style spaced repetition** — Layer **SRS scheduling** (self-ratings, intervals, due reviews) on memorized texts, aligned with [`PROJECT_SPEC.md`](PROJECT_SPEC.md) Feature D (SM-2). The repo already contains SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts) and persisted SM-2 fields on the Durable Object; wiring **`POST /api/review`**, a review UI, and optional **per-card / due-date** behavior is future work.
 
 ## Troubleshooting
 

@@ -54,6 +54,11 @@ The following components MUST be implemented to satisfy the Cloudflare AI app as
     * **EF Formula:** $EF = EF + (0.1 - (5 - q) \times (0.08 + (5 - q) \times 0.02))$. 
     * *Constraint:* $EF$ must not drop below 1.3.
 
+### Implementation status (product vs spec)
+
+* **Feature D (SM-2 review UI and `POST /api/review`):** **Deferred** in the shipping app. The **target algorithm** above remains the spec; `backend/src/sm2.ts` implements `calculateNextReview`, and the **MemorizationSession** Durable Object **persists SM-2 state** in `ctx.storage` as groundwork. **HTTP wiring**, self-rating buttons after practice, and **Anki-style scheduling / due reviews** are **planned enhancements**.
+* **Chunk history:** Persisting a **user-visible history** of chunked passages (beyond the current session id + D1 rows) is also **planned** for a future update, alongside richer SRS.
+
 ## 4. Agent Instructions
 * **Auto-Logging:** You MUST append the prompt used for every major code generation or refactor to `PROMPTS.md`.
 * **Cloudflare Context:** Prioritize using Cloudflare Workers, Durable Objects, and Workers AI.

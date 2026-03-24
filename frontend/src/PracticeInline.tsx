@@ -90,9 +90,61 @@ export function PracticeInline({
   const [builtString, setBuiltString] = useState("");
   const submittedRef = useRef(false);
 
+  const [hintMessages, setHintMessages] = useState<{ id: string; text: string }[]>([]);
+  const [hintLoading, setHintLoading] = useState(false);
+  const [hintError, setHintError] = useState<string | null>(null);
+
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
+
+  const requestHint = useCallback(async () => {
+    if (checkLoading || payload.completedSession) return;
+    const cur = wordPieces[cursorAt];
+    if (!cur?.contributing) return;
+    setHintLoading(true);
+    setHintError(null);
+    try {
+      const res = await fetch("/api/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          chunkIndex: payload.currentChunkIndex,
+          wordIndex: cur.wordIndex,
+        }),
+      });
+      const data = (await res.json()) as
+        | { ok: true; hint: string }
+        | { ok: false; error: string };
+      if (!res.ok || !data.ok) {
+        const msg =
+          "error" in data && typeof data.error === "string"
+            ? data.error
+            : `Request failed (${res.status})`;
+        setHintError(msg);
+        return;
+      }
+      setHintMessages((m) => [
+        ...m,
+        {
+          id: `${Date.now()}-${m.length}`,
+          text: data.hint,
+        },
+      ]);
+    } catch {
+      setHintError("Network error");
+    } finally {
+      setHintLoading(false);
+    }
+  }, [
+    checkLoading,
+    payload.completedSession,
+    payload.currentChunkIndex,
+    sessionId,
+    wordPieces,
+    cursorAt,
+  ]);
 
   const runCheck = useCallback(
     async (input: string) => {
@@ -196,6 +248,14 @@ export function PracticeInline({
         ? "Checking…"
         : "";
 
+  const currentWord = wordPieces[cursorAt];
+  const hintDisabled =
+    checkLoading ||
+    payload.completedSession ||
+    wordCount === 0 ||
+    cursorAt >= wordCount ||
+    !currentWord?.contributing;
+
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-slate-400">
@@ -258,6 +318,42 @@ export function PracticeInline({
         Click the passage, then type one letter per word in order (case-insensitive). Hidden words
         are included—follow the cursor. Retry still changes Step 2 masking.
       </p>
+
+      <div className="flex flex-col gap-2 rounded-md border border-slate-700 bg-slate-900/60 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-medium text-slate-300">Hints</span>
+          <button
+            type="button"
+            onClick={() => void requestHint()}
+            disabled={hintDisabled || hintLoading}
+            className="rounded-md bg-violet-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {hintLoading ? "Getting hint…" : "Get hint"}
+          </button>
+        </div>
+        <p className="text-xs text-slate-500">
+          A short synonym, rhyme, or context clue for the word under the cursor (the model does not
+          spell the word).
+        </p>
+        {hintError && (
+          <p className="text-sm text-amber-400">{hintError}</p>
+        )}
+        {hintMessages.length > 0 && (
+          <ul
+            className="max-h-36 space-y-2 overflow-y-auto text-sm text-slate-200"
+            aria-label="Hint messages"
+          >
+            {hintMessages.map((h) => (
+              <li
+                key={h.id}
+                className="rounded border border-slate-600/80 bg-slate-950/80 px-2 py-2 text-slate-100"
+              >
+                {h.text}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

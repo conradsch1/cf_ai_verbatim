@@ -69,8 +69,9 @@ const defaultPractice = (): PracticeState => ({
 });
 
 /**
- * Per-session coordination: SM-2 (stub) + practice cursor (chunk, step, Step 2 parity).
- * Practice + SM-2 are persisted to DO storage so step survives DO eviction between requests.
+ * Per-session coordination: practice cursor (chunk, step, Step 2 parity) + SM-2 state for future review/SRS.
+ * Practice and SM-2 are persisted to DO storage so they survive DO eviction between requests.
+ * HTTP wiring for self-rated review (`POST /api/review`) is deferred; `applyReview` + `sm2.ts` are groundwork.
  */
 export class MemorizationSession extends DurableObject {
   private sm2State: SM2State = { ...DEFAULT_SM2_STATE };

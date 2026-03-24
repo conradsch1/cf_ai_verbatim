@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import type { Env } from "./bindings";
 import { handleChunkRequest, type ChunkRequestBody } from "./chunk";
 import { MemorizationSession } from "./memorization-session";
+import { handleHintRequest, type HintRequestBody } from "./hint";
 import {
   getPracticePayload,
   getSessionChunks,
@@ -47,20 +48,31 @@ app.post("/api/chunk", async (c) => {
   });
 });
 
-app.post("/api/hint", (c) =>
-  c.json({
-    ok: true,
-    message: "not implemented",
-    endpoint: "/api/hint",
-  })
-);
+app.post("/api/hint", async (c) => {
+  let body: HintRequestBody;
+  try {
+    body = (await c.req.json()) as HintRequestBody;
+  } catch {
+    return c.json({ ok: false, error: "Invalid JSON body" }, 400);
+  }
+  const result = await handleHintRequest(c.env, body);
+  if (!result.ok) {
+    return c.json({ ok: false, error: result.error }, result.status);
+  }
+  return c.json({ ok: true, hint: result.hint });
+});
 
 app.post("/api/review", (c) =>
-  c.json({
-    ok: true,
-    message: "not implemented",
-    endpoint: "/api/review",
-  })
+  c.json(
+    {
+      ok: false,
+      deferred: true,
+      message:
+        "Spaced repetition (POST /api/review) is deferred. See README.md: Roadmap / future work.",
+      endpoint: "/api/review",
+    },
+    501
+  )
 );
 
 app.get("/api/session/:sessionId/chunks", async (c) => {

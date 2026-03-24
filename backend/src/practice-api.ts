@@ -65,7 +65,7 @@ async function retryDO(stub: DurableObjectStub): Promise<PracticeState> {
   return data.state;
 }
 
-async function loadOrderedChunks(
+export async function loadOrderedChunks(
   db: D1Database,
   sessionId: string
 ): Promise<string[]> {
@@ -76,6 +76,25 @@ async function loadOrderedChunks(
     .bind(sessionId)
     .all<{ content: string }>();
   return results.map((r) => r.content);
+}
+
+/** Load D1 chunks and sync MemorizationSession practice cursor (used by hint flow). */
+export async function loadChunksAndSyncPracticeState(
+  env: Env,
+  sessionId: string
+):
+  | { ok: true; chunks: string[]; state: PracticeState }
+  | { ok: false; error: string; status: number } {
+  if (!(await sessionExists(env.db, sessionId))) {
+    return { ok: false, error: "Session not found", status: 404 };
+  }
+  const chunks = await loadOrderedChunks(env.db, sessionId);
+  if (chunks.length === 0) {
+    return { ok: false, error: "No chunks for this session", status: 404 };
+  }
+  const stub = doStub(env, sessionId);
+  const state = await syncPracticeDO(stub, chunks.length);
+  return { ok: true, chunks, state };
 }
 
 function currentChunkText(chunks: string[], state: PracticeState): string {

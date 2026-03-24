@@ -72,4 +72,28 @@ This document tracks the AI assistance and prompts used to develop this applicat
 * **Debugging:** Builds on persisted DO practice state (`ctx.storage`; see prior entry). **Hypotheses:** same `sessionId` still in [`frontend/src/App.tsx`](frontend/src/App.tsx) `localStorage` after dev restart; [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts) `syncPracticeTotalChunks` only resets when `practice.totalChunks !== totalChunks`, so re-chunking with the **same chunk count** left `completedSession: true` in the Durable Object. Temporary instrumentation: ingest logs in [`backend/src/practice-api.ts`](backend/src/practice-api.ts) (`getPracticePayload` after sync) and [`frontend/src/App.tsx`](frontend/src/App.tsx) (`fetchPractice` success). **Runtime evidence:** NDJSON showed `d1ChunkCount` === `doTotalChunks` with `completedSession: true` when opening practice on a new passage.
 * **Outcome:** **Fix:** new DO route `POST /practice/reset-for-chunks` in [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts); [`backend/src/chunk.ts`](backend/src/chunk.ts) calls `resetMemorizationPracticeForSession` after `replaceChunksForSession` so practice resets whenever D1 chunks are replaced (including unchanged chunk count). Removed debug `fetch` instrumentation after verification; product fix retained.
 
+### Feature/Task: Phase — Context-aware hints (Feature C)
+* **Goal:** [`PROJECT_SPEC.md`](PROJECT_SPEC.md) Feature C: chat-style hint for the **current practice word** via `POST /api/hint`; Workers AI gives a synonym, rhyme, or context clue without revealing the word; validate `chunkIndex` / `wordIndex` against D1 + Durable Object state.
+* **My Prompt:** "Plan: Context-aware hints (Feature C) — Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself." (Executed attached plan: backend `wordPieces`, `hint.ts`, route, practice UI hint panel, README + PROMPTS.)
+* **Outcome:** [`backend/src/wordPieces.ts`](backend/src/wordPieces.ts) (`getWordPieceAt`, parity with [`frontend/src/practicePieces.ts`](frontend/src/practicePieces.ts)); [`backend/src/practice-api.ts`](backend/src/practice-api.ts) exports `loadOrderedChunks`, `loadChunksAndSyncPracticeState`; [`backend/src/hint.ts`](backend/src/hint.ts) (`handleHintRequest`, leak check + one retry); [`backend/src/index.ts`](backend/src/index.ts) `POST /api/hint`; [`frontend/src/PracticeInline.tsx`](frontend/src/PracticeInline.tsx) Hints panel + **Get hint**; [`README.md`](README.md). Model: `WORKERS_AI_LLAMA_3_3` in `env.AI.run`, `messages: [{ role: "system", content: <HINT_SYSTEM or HINT_RETRY_SYSTEM> }, { role: "user", content: <user template> }]`.
+* **Exact LLM strings (copy from [`backend/src/hint.ts`](backend/src/hint.ts)):**
+  * **System (primary):**
+    ```
+    You help someone memorize verbatim text. They type only the first letter of each word.
+
+    Rules:
+    - Output EXACTLY one or two short sentences with a single clue.
+    - The clue must be a synonym association, a rhyme hint, or a context clue about meaning or grammatical role.
+    - NEVER output the target word or obvious morphological variants (plural, possessive, -ed, -ing) of that word.
+    - Do not answer with only the first letter.
+    - No markdown, no code fences, no preamble.
+    ```
+  * **System (retry after leak):** same as primary, plus two lines: `You must reply again: the previous attempt was invalid because it leaked the word. Use only indirect associations or scene context.`
+  * **User message template:** `Chunk (verbatim):\n"""\n${chunk}\n"""\n\nWord token index (whitespace-delimited words, same as the practice UI): ${wordIndex}\n\nTarget token (do NOT repeat this token or its letters in your reply): ${piece.raw}\n\nReply with one short clue only.`
+
+### Feature/Task: Defer SRS — roadmap docs + review placeholder cleanup
+* **Goal:** Skip shipping spaced repetition for now; document future work (saved chunk history + Anki-style SRS); avoid implying SM-2 review is live; clarify `POST /api/review` and DO SM-2 groundwork.
+* **My Prompt:** "Ok I want skip the SRS for now. Can you mark in the documentation as additonal note that future updates will allow you to save your history of chunks you've created and add an Anki style spaced repition to help you retain your memorizated texts. Also clean up the repo to type up loose ends related to the planned implementation of the SRS. Make a plan to accomplish this." — then: "Plan: Defer SRS + document roadmap + tidy loose ends — Implement the plan as specified…"
+* **Outcome:** [`README.md`](README.md) intro + **Roadmap / future work** (history + Anki-style SRS); running-instructions line for deferred `POST /api/review` (HTTP 501); [`PROJECT_SPEC.md`](PROJECT_SPEC.md) **Implementation status** under Feature D + chunk history note; [`backend/src/index.ts`](backend/src/index.ts) JSON body `deferred: true` + README pointer; [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts) class comment. Left `sm2.ts`, `applyReview`, and `STORAGE_SM2` unchanged as groundwork.
+
 ---
