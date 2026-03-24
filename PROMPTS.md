@@ -101,4 +101,9 @@ This document tracks the AI assistance and prompts used to develop this applicat
 * **My Prompt:** **(Planning, plan mode)** "Let's make some UX improvements. We will start with this problem. When the user presses the Get Hint button, can't type in pratice chunk section unless they press that section again. In the current version this is not imedialty ovbious. Suggest changes to fix this." — then: "Also add a @PROMPTS.md entry for this." **(Implementation)** "Fix practice focus after \"Get hint\" — Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself."
 * **Outcome:** [`frontend/src/PracticeInline.tsx`](frontend/src/PracticeInline.tsx): button `onMouseDown={(e) => e.preventDefault()}`; `finally` calls `containerRef.current?.focus({ preventScroll: true })` after hint request completes.
 
+### Feature/Task: UX — hide memorization text and chunks during practice (Approach A)
+* **Goal:** While practicing, the pasted passage and **Chunks** list were still visible and acted as a cheat sheet for masked words. Hide those regions during active practice unless the user explicitly peeks.
+* **My Prompt:** **(Planning, plan mode)** Problem statement about visible cheat sheet during practice; approaches suggested; "Let's do approach A." **(Implementation)** "Hide \"cheat sheet\" during practice (Approach A — selected) — Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself."
+* **Outcome:** [`frontend/src/App.tsx`](frontend/src/App.tsx): `practicing`, `peekSource`, `showMemorizationAndChunks`; hide textarea + chunks section while `practicing && !peekSource`; **Practice mode** banner + **Peek** / **Hide source & chunks again**; subtitle swap while hidden; reset `peekSource` on `clearSession`, start of `fetchPractice`, successful re-chunk (`submitChunk`), and when `practice.completedSession`.
+
 ---

@@ -46,11 +46,21 @@ export default function App() {
   const [checkLoading, setCheckLoading] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
   const [practiceResetSignal, setPracticeResetSignal] = useState(0);
+  const [peekSource, setPeekSource] = useState(false);
+
+  const practicing = !!(practice && !practice.completedSession);
+  const showMemorizationAndChunks = !practicing || peekSource;
 
   useEffect(() => {
     const stored = localStorage.getItem(SESSION_STORAGE_KEY);
     if (stored) setSessionId(stored);
   }, []);
+
+  useEffect(() => {
+    if (practice?.completedSession) {
+      setPeekSource(false);
+    }
+  }, [practice?.completedSession]);
 
   const persistSession = useCallback((id: string) => {
     setSessionId(id);
@@ -63,10 +73,12 @@ export default function App() {
     setPractice(null);
     setPracticeError(null);
     setPracticeResetSignal(0);
+    setPeekSource(false);
     localStorage.removeItem(SESSION_STORAGE_KEY);
   }, []);
 
   const fetchPractice = useCallback(async (sid: string) => {
+    setPeekSource(false);
     setPracticeLoading(true);
     setPracticeError(null);
     try {
@@ -122,6 +134,7 @@ export default function App() {
       persistSession(data.sessionId);
       setChunks(data.chunks);
       setPractice(null);
+      setPeekSource(false);
     } catch {
       setError("Network error — is the Worker running on port 8787?");
     } finally {
@@ -179,24 +192,36 @@ export default function App() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">cf_ai_verbatim</h1>
           <p className="mt-2 text-slate-400">
-            Paste text below. Llama 3.3 (Workers AI) aims for ~7–30 word chunks at natural
-            boundaries (tolerant sizing); results are stored in D1.
+            {practicing && !peekSource ? (
+              <>
+                You are practicing — the full passage and chunk list are hidden. Use{" "}
+                <span className="text-slate-300">Peek</span> below to show them, or finish the
+                session to return to chunking.
+              </>
+            ) : (
+              <>
+                Paste text below. Llama 3.3 (Workers AI) aims for ~7–30 word chunks at natural
+                boundaries (tolerant sizing); results are stored in D1.
+              </>
+            )}
           </p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label htmlFor="mem-text" className="text-sm font-medium text-slate-300">
-            Text to memorize
-          </label>
-          <textarea
-            id="mem-text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={10}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-            placeholder="Long passage, speech, creed…"
-          />
-        </div>
+        {showMemorizationAndChunks && (
+          <div className="flex flex-col gap-2">
+            <label htmlFor="mem-text" className="text-sm font-medium text-slate-300">
+              Text to memorize
+            </label>
+            <textarea
+              id="mem-text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={10}
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="Long passage, speech, creed…"
+            />
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -227,7 +252,7 @@ export default function App() {
           </p>
         )}
 
-        {chunks.length > 0 && (
+        {chunks.length > 0 && showMemorizationAndChunks && (
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-medium text-slate-200">
               Chunks ({chunks.length})
@@ -252,6 +277,26 @@ export default function App() {
               </div>
             )}
           </section>
+        )}
+
+        {practicing && (
+          <div className="flex flex-col gap-3 rounded-lg border border-emerald-900/50 bg-emerald-950/25 px-4 py-3">
+            <p className="text-sm text-emerald-100/90">
+              <span className="font-medium text-emerald-200">Practice mode.</span> Your full
+              memorization text and chunk list are hidden so they cannot be used as a cheat sheet.
+              Use <strong className="font-medium">Peek</strong> if you need them, or{" "}
+              <strong className="font-medium">New session</strong> to start over.
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => setPeekSource((p) => !p)}
+                className="rounded-lg border border-emerald-700/80 bg-emerald-900/40 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-900/60"
+              >
+                {peekSource ? "Hide source & chunks again" : "Peek at source & chunks"}
+              </button>
+            </div>
+          </div>
         )}
 
         {practice && sessionId && (
