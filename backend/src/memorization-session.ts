@@ -170,6 +170,19 @@ export class MemorizationSession extends DurableObject {
       return Response.json(this.getPracticeState());
     }
 
+    if (request.method === "POST" && path === "/practice/reset-for-chunks") {
+      let body: { totalChunks?: number };
+      try {
+        body = (await request.json()) as { totalChunks?: number };
+      } catch {
+        return Response.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+      }
+      const n = typeof body.totalChunks === "number" ? body.totalChunks : 0;
+      this.practice = { ...defaultPractice(), totalChunks: n };
+      await this.persistPractice();
+      return Response.json({ ok: true, state: this.getPracticeState() });
+    }
+
     if (request.method === "POST" && path === "/practice/sync") {
       let body: { totalChunks?: number };
       try {

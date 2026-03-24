@@ -1,4 +1,25 @@
 import type { Env } from "./bindings";
+
+const DO_ORIGIN = "http://memorization-session.internal";
+
+/** After D1 chunks are replaced, reset DO practice so completedSession does not survive re-chunk with same count. */
+async function resetMemorizationPracticeForSession(
+  env: Env,
+  sessionId: string,
+  totalChunks: number
+): Promise<void> {
+  const id = env.MEMORIZATION_SESSION.idFromName(sessionId);
+  const stub = env.MEMORIZATION_SESSION.get(id);
+  const res = await stub.fetch(
+    new Request(`${DO_ORIGIN}/practice/reset-for-chunks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ totalChunks }),
+    })
+  );
+  const data = (await res.json()) as { ok?: boolean };
+  if (!data.ok) throw new Error("MemorizationSession practice reset failed");
+}
 import { WORKERS_AI_LLAMA_3_3 } from "./constants";
 
 const MAX_TEXT_CHARS = 32_000;
@@ -202,6 +223,7 @@ export async function handleChunkRequest(
   }
 
   await replaceChunksForSession(db, sessionId, chunks);
+  await resetMemorizationPracticeForSession(env, sessionId, chunks.length);
 
   return { ok: true, sessionId, chunks };
 }
