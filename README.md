@@ -35,7 +35,7 @@ flowchart LR
 
 ## Setup and running
 
-You can step up this app **either locally or via a deployed link**—you do not need both (Note: if you simply want to use the app, access it via the "Deployed app" link at the top of README. Steps 4–5 below cover **local** development; **Deploy** (step 6) is the optional path to a single public URL.
+You can step up this app **either locally or via a deployed link**—you do not need both. Note: if you simply want to use the app, access it via the "Deployed app" link at the top of README. Steps 4–5 below cover **local** development; **Deploy** (step 6) is the optional path to a single public URL.
 
 1. **Install dependencies** (Node.js 20+ recommended):
 
