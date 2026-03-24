@@ -10,7 +10,7 @@ AI-powered verbatim text memorization (using Cloudflare's Agents ecosystem). Use
   - `@cf/openai/whisper-large-v3-turbo` (speech-to-text)  
   Constants: [`backend/src/constants.ts`](backend/src/constants.ts).
 - **State:** [D1](https://developers.cloudflare.com/d1/) database binding `db` in [`backend/wrangler.toml`](backend/wrangler.toml). [Durable Object](https://developers.cloudflare.com/durable-objects/) **`MemorizationSession`** (`MEMORIZATION_SESSION`) stores practice progress (chunk index, step 1–3, Step 2 mask parity for retries) and persists **SM-2 state** as groundwork for a future review API — [`backend/src/memorization-session.ts`](backend/src/memorization-session.ts), SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts). Practice helpers: [`backend/src/keystrokes.ts`](backend/src/keystrokes.ts), [`backend/src/mask.ts`](backend/src/mask.ts), [`backend/src/practice-api.ts`](backend/src/practice-api.ts), [`backend/src/wordPieces.ts`](backend/src/wordPieces.ts). Hints: [`backend/src/hint.ts`](backend/src/hint.ts).
-- **Web UI:** [`frontend/`](frontend/) — Vite + React + TypeScript + Tailwind CSS v4 (`@tailwindcss/vite`). Dev server proxies `/api` to the Worker default port (8787).
+- **Web UI:** [`frontend/`](frontend/) — Vite + React + TypeScript + Tailwind CSS v4 (`@tailwindcss/vite`). Dev server proxies `/api` to the Worker default port (8787). In production, `npm run deploy` uploads the Vite build from `frontend/dist` with the Worker so the app and API share one URL.
 
 ```mermaid
 flowchart LR
@@ -30,6 +30,8 @@ flowchart LR
 ```
 
 ## Setup and running
+
+The assignment asks for instructions to try the app **either locally or via a deployed link**—you do not need both. Steps 4–5 below cover **local** development; **Deploy** (step 6) is the optional path to a single public URL.
 
 1. **Install dependencies** (Node.js 20+ recommended):
 
@@ -69,7 +71,20 @@ flowchart LR
 
    Default: `http://localhost:5173` — `/api/*` is proxied to the Worker on 8787.
 
-6. **Deploy:** Configure `database_id`, apply **remote** D1 migrations, then run `npm run deploy --workspace=backend` (or `cd backend && npx wrangler deploy`).
+6. **Deploy (optional public URL):** The Worker is configured to serve the **built** React app from `frontend/dist` via [Workers static assets](https://developers.cloudflare.com/workers/static-assets/) and SPA fallback (`index.html` for client routes), so the UI and `/api` share one origin and relative `fetch("/api/...")` calls work in production.
+
+   1. Put your `database_id` in [`backend/wrangler.toml`](backend/wrangler.toml) and apply **remote** D1 migrations (step 3 with `--remote`).
+   2. From the **repository root**:
+
+      ```bash
+      npm run deploy
+      ```
+
+      This builds the frontend (`frontend/dist/`) then runs `wrangler deploy` in `backend/`. The deploy step expects `frontend/dist` to exist; if you only run `wrangler deploy` from `backend/` without building first, upload may fail.
+
+   3. Wrangler prints the Worker URL (for example `https://cf-ai-verbatim.<account>.workers.dev`). Open that link in a browser to try the full app without a local dev server.
+
+   To exercise the same Worker + assets setup locally, build the frontend first, then run `npm run dev:backend` — Wrangler serves uploaded assets when `frontend/dist` is present.
 
 ## Roadmap / future work
 
@@ -79,6 +94,10 @@ flowchart LR
 2. **Anki-style spaced repetition** — Layer **SRS scheduling** (self-ratings, intervals, due reviews) on memorized texts, aligned with [`PROJECT_SPEC.md`](PROJECT_SPEC.md) Feature D (SM-2). The repo already contains SM-2 math in [`backend/src/sm2.ts`](backend/src/sm2.ts) and persisted SM-2 fields on the Durable Object; wiring **`POST /api/review`**, a review UI, and optional **per-card / due-date** behavior is future work.
 
 ## Troubleshooting
+
+### `wrangler deploy` fails: `new_sqlite_classes` / code 10097 (Free plan)
+
+On **Workers Free**, only [SQLite-backed Durable Objects](https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/) are allowed. [`backend/wrangler.toml`](backend/wrangler.toml) must use `new_sqlite_classes` (not `new_classes`) for the initial migration. The `MemorizationSession` class still uses the familiar key-value storage API; SQLite is the platform storage backend.
 
 ### `POST /api/chunk` returns 502 / `error code: 1031`
 

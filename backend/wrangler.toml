@@ -1,6 +1,11 @@
 name = "cf-ai-verbatim"
 main = "src/index.ts"
-compatibility_date = "2025-03-01"
+# SPA asset routing (navigation vs /api) expects 2025-04-01+ per Cloudflare static assets docs
+compatibility_date = "2025-04-01"
+
+[assets]
+directory = "../frontend/dist"
+not_found_handling = "single-page-application"
 
 [ai]
 binding = "AI"
@@ -14,6 +19,7 @@ database_id = "8b75fec7-0ef6-4da8-ae24-30c185f0cdeb"
 name = "MEMORIZATION_SESSION"
 class_name = "MemorizationSession"
 
+# Workers Free: only SQLite-backed DOs; use new_sqlite_classes (KV storage API still works inside the class)
 [[migrations]]
 tag = "v1"
-new_classes = ["MemorizationSession"]
+new_sqlite_classes = ["MemorizationSession"]

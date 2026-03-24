@@ -122,3 +122,10 @@ This document tracks the AI assistance and prompts used to develop this applicat
 * **Outcome:** [`frontend/src/PracticeInline.tsx`](frontend/src/PracticeInline.tsx): helper line under practice instructions: say each word out loud as you type its first letter when preparing to recite aloud.
 
 ---
+
+### Feature/Task: Deploy — single URL (Worker + static assets) + Free-plan DO migration
+* **Goal:** Satisfy the assignment option for “clear running instructions … either locally or via deployed link” with a real **one-URL** deploy: built React app from `frontend/dist` served by the same Worker as `/api`; document `npm run deploy`; fix **Workers Free** Durable Objects by using SQLite-backed migration (`new_sqlite_classes`); document deploy troubleshooting (error **10097** / script-API warning is Cloudflare-side, not repo-specific).
+* **My Prompt:** Assignment question: *“How would I do [a deployed link]? … either locally or via deployed link.”* — then: *“Implement the plan as specified”* (deployed link guidance + implementation). Follow-up: deploy failed with *“you must create a namespace using a `new_sqlite_classes` migration”* / code **10097**; terminal warning about *“last updated via the script API”* (explained as dashboard/API vs Wrangler).
+* **Outcome:** [`backend/wrangler.toml`](backend/wrangler.toml): `[assets]` with `directory = "../frontend/dist"`, `not_found_handling = "single-page-application"`; `compatibility_date` bumped for SPA asset routing; `[[migrations]]` uses **`new_sqlite_classes`** for `MemorizationSession` (Free tier; KV-style `ctx.storage` in code unchanged per Cloudflare docs). [`backend/src/index.ts`](backend/src/index.ts): CORS **`origin`** callback reflects request `Origin` (localhost + deployed same-origin). Root [`package.json`](package.json): `build:frontend`, `deploy` (build frontend then `wrangler deploy` in `backend`). [`README.md`](README.md): assignment note (local **or** deployed); expanded **Deploy** step; **Troubleshooting** for 10097 / Free + SQLite DOs; Technical Architecture line on production deploy.
+
+---

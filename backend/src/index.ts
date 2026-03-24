@@ -18,7 +18,8 @@ const app = new Hono<{ Bindings: Env }>();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    // Reflect request origin so local Vite (5173) and same-origin deployed Worker both work
+    origin: (origin) => origin ?? "http://localhost:5173",
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "X-Session-Id"],
   })
