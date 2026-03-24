@@ -106,4 +106,19 @@ This document tracks the AI assistance and prompts used to develop this applicat
 * **My Prompt:** **(Planning, plan mode)** Problem statement about visible cheat sheet during practice; approaches suggested; "Let's do approach A." **(Implementation)** "Hide \"cheat sheet\" during practice (Approach A — selected) — Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself."
 * **Outcome:** [`frontend/src/App.tsx`](frontend/src/App.tsx): `practicing`, `peekSource`, `showMemorizationAndChunks`; hide textarea + chunks section while `practicing && !peekSource`; **Practice mode** banner + **Peek** / **Hide source & chunks again**; subtitle swap while hidden; reset `peekSource` on `clearSession`, start of `fetchPractice`, successful re-chunk (`submitChunk`), and when `practice.completedSession`.
 
+### Feature/Task: UX — product title Verbatim + tagline
+* **Goal:** Replace repo-style hero title `cf_ai_verbatim` with a user-facing name and subtitle.
+* **My Prompt:** After branding alternatives plan: "I like \"Verbatim — subtitle: AI-assisted memorization\". Implement this one."
+* **Outcome:** [`frontend/src/App.tsx`](frontend/src/App.tsx): `<h1>Verbatim</h1>` plus tagline paragraph **AI-assisted memorization**; contextual copy unchanged below. [`frontend/index.html`](frontend/index.html): document title `Verbatim — AI-assisted memorization`.
+
+### Feature/Task: UX — plain-language hero copy (chunking intro)
+* **Goal:** Replace technical Llama/D1 chunking sentence with user-facing copy.
+* **My Prompt:** "The section \"Paste text below. Llama 3.3…\" is too technical for a user-facing page. Suggest a rewrite." — then: "Do choice 3 and yes replace the Llama/D1 sentence." (Choice 3: minimal paste + automatic study-sized chunks.)
+* **Outcome:** [`frontend/src/App.tsx`](frontend/src/App.tsx): default hero paragraph now **Paste your text below. It'll be split into study-sized chunks automatically.**
+
+### Feature/Task: UX — oral recitation tip in practice
+* **Goal:** Add user-facing suggestion to say words out loud while typing when practicing for spoken recitation.
+* **My Prompt:** "In pratice section, I want to add a suggestion along the lines of \"If your goal is to recite the text orally, it is Recommended to say words outloud while you type them\"."
+* **Outcome:** [`frontend/src/PracticeInline.tsx`](frontend/src/PracticeInline.tsx): helper line under practice instructions: say each word out loud as you type its first letter when preparing to recite aloud.
+
 ---

@@ -51,7 +51,7 @@ function formatMismatchFeedback(f: KeystrokeMismatchFeedback): string {
   const ec = f.expectedChar === null ? "(end)" : `"${f.expectedChar}"`;
   const ac =
     f.actualChar === null ? "nothing here yet" : `"${f.actualChar}"`;
-  return `First difference at word ${f.wordIndex} of ${f.totalWords}: expected ${ec}, you had ${ac}. Try again or use Retry (Step 2 changes which words are hidden).`;
+  return `First difference at word ${f.wordIndex} of ${f.totalWords}: expected ${ec}, you had ${ac}. Get 100% accuracy to move on to the next step.`;
 }
 
 type Outcome = "correct" | "wrong";
@@ -316,8 +316,11 @@ export function PracticeInline({
         })}
       </div>
       <p className="text-xs text-slate-500">
-        Click the passage, then type one letter per word in order (case-insensitive). Hidden words
-        are included—follow the cursor. Retry still changes Step 2 masking.
+        Click the passage, then type one letter per word in order (case-insensitive).
+      </p>
+      <p className="text-xs text-slate-500">
+        If your goal is to recite the text aloud, try saying each word out loud as you type its first
+        letter.
       </p>
 
       <div className="flex flex-col gap-2 rounded-md border border-slate-700 bg-slate-900/60 p-3">

@@ -190,8 +190,9 @@ export default function App() {
     <div className="min-h-dvh bg-slate-950 text-slate-100">
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-16">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">cf_ai_verbatim</h1>
-          <p className="mt-2 text-slate-400">
+          <h1 className="text-3xl font-semibold tracking-tight">Verbatim</h1>
+          <p className="mt-1 text-lg text-slate-400">AI-assisted memorization</p>
+          <p className="mt-3 text-slate-400">
             {practicing && !peekSource ? (
               <>
                 You are practicing — the full passage and chunk list are hidden. Use{" "}
@@ -200,8 +201,7 @@ export default function App() {
               </>
             ) : (
               <>
-                Paste text below. Llama 3.3 (Workers AI) aims for ~7–30 word chunks at natural
-                boundaries (tolerant sizing); results are stored in D1.
+                Paste your text below. It&apos;ll be split into study-sized chunks automatically.
               </>
             )}
           </p>
