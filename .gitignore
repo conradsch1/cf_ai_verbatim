@@ -7,3 +7,6 @@ dist/
 *.local
 .DS_Store
 Thumbs.db
+
+# Cursor debug-mode NDJSON session logs (local only)
+.cursor/debug-*.log
