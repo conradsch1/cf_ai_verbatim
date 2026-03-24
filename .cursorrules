@@ -12,6 +12,6 @@ Format the appended entry exactly like this:
 
 ### Feature/Task: [Short name of what we are working on]
 * **Goal:** [Brief description of what I asked you to do]
-* **My Prompt:** "[Insert a summary or the exact text of my prompt to you]"
+* **My Prompt:** "[Insert a summary or the exact text of my prompt to you]" If work was **planned first** (e.g. plan mode) and **implemented in a later message**, include **both** the user’s **planning prompt(s)** and the **implementation / execute-plan prompt** here—not only the execution step.
 * **Outcome:** [Brief description of the files you modified or the code you generated]
 ---

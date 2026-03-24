@@ -136,6 +136,7 @@ export function PracticeInline({
       setHintError("Network error");
     } finally {
       setHintLoading(false);
+      containerRef.current?.focus({ preventScroll: true });
     }
   }, [
     checkLoading,
@@ -324,6 +325,7 @@ export function PracticeInline({
           <span className="text-sm font-medium text-slate-300">Hints</span>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => void requestHint()}
             disabled={hintDisabled || hintLoading}
             className="rounded-md bg-violet-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"

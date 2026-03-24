@@ -60,6 +60,6 @@ The following components MUST be implemented to satisfy the Cloudflare AI app as
 * **Chunk history:** Persisting a **user-visible history** of chunked passages (beyond the current session id + D1 rows) is also **planned** for a future update, alongside richer SRS.
 
 ## 4. Agent Instructions
-* **Auto-Logging:** You MUST append the prompt used for every major code generation or refactor to `PROMPTS.md`.
+* **Auto-Logging:** You MUST append the prompt used for every major code generation or refactor to `PROMPTS.md`. If the task was **planned** in one turn and **implemented** in a later turn, **My Prompt** must include **both** the planning prompt(s) and the implementation prompt, not only the execute-plan message.
 * **Cloudflare Context:** Prioritize using Cloudflare Workers, Durable Objects, and Workers AI.
 * **Documentation:** Help draft the `README.md` to ensure it includes clear "running instructions" as required by the assignment.
