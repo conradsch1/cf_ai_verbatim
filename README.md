@@ -2,6 +2,10 @@
 
 AI-powered verbatim text memorization (using Cloudflare's Agents ecosystem). Users chunk long text with Workers AI, practice with progressive fading (3-step recall), and request context-aware hints. Future updates will include **Spaced repetition** using Anki-style review scheduling—see [Roadmap / future work](#roadmap--future-work) for the planned enhancements.
 
+## Live demo
+
+**Deployed app:** https://cf-ai-verbatim.conradschaumburg.workers.dev
+
 ## Technical Architecture
 
 - **Edge API:** [`backend/`](backend/) — [Hono](https://hono.dev/) on a [Cloudflare Worker](https://developers.cloudflare.com/workers/). Entry: [`backend/src/index.ts`](backend/src/index.ts).
