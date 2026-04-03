@@ -1,10 +1,15 @@
 # cf_ai_verbatim
 
-AI-powered verbatim text memorization (using Cloudflare's Agents ecosystem). Users chunk long text with Workers AI, practice with progressive fading (3-step recall), and request context-aware hints. Future updates will include **Spaced repetition** using Anki-style review scheduling—see [Roadmap / future work](#roadmap--future-work) for the planned enhancements.
+AI-powered verbatim text memorization (using Cloudflare's Agents ecosystem). Users paste text (up to **1,000 characters** per chunking request), split it into study-sized chunks with Workers AI, practice with progressive fading (3-step recall), and request context-aware hints. Future updates will include **Spaced repetition** using Anki-style review scheduling—see [Roadmap / future work](#roadmap--future-work) for the planned enhancements.
 
 ## Live demo
 
 **Deployed app:** https://cf-ai-verbatim.conradschaumburg.workers.dev
+
+## Chunking limits (`POST /api/chunk`)
+
+- **Maximum length:** **1,000 characters** of pasted text per chunking request. The limit is enforced in [`backend/src/chunk.ts`](backend/src/chunk.ts) (`MAX_TEXT_CHARS`) and mirrored in the UI (`MAX_MEMORIZE_CHARS` in [`frontend/src/App.tsx`](frontend/src/App.tsx)); keep those two values in sync if you change the cap.
+- **Workers AI:** The UI sends text to `POST /api/chunk`, which calls Llama 3.3 on Workers AI to produce verbatim chunks. **Gateway timeouts (HTTP 504)** can still happen when inference is slow or overloaded. The API maps typical 504 HTML responses to a short message: *“Chunking timed out. Try shorter text, or try again in a moment.”*
 
 ## Technical Architecture
 

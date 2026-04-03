@@ -22,7 +22,12 @@ async function resetMemorizationPracticeForSession(
 }
 import { WORKERS_AI_LLAMA_3_3 } from "./constants";
 
-const MAX_TEXT_CHARS = 32_000;
+/**
+ * Max pasted length for AI chunking. Keeps prompts/completions short to reduce gateway
+ * timeout (504) risk—not a guarantee against timeouts or a context-window ceiling.
+ * Keep in sync with MAX_MEMORIZE_CHARS in frontend/src/App.tsx.
+ */
+export const MAX_TEXT_CHARS = 1_000;
 /** Prompt-only targets; the Worker does not reject chunks solely for word count outside this band. */
 const CHUNK_TARGET_MIN_WORDS = 7;
 const CHUNK_TARGET_MAX_WORDS = 30;
@@ -35,6 +40,22 @@ const CHUNK_SYSTEM = `You split prose into memorization-sized phrases. Rules:
 - Cover the entire user text from start to finish with no gaps and no overlap between chunks.
 - Output ONLY valid JSON with this exact shape: {"chunks":["...","..."]}
 - No markdown, no code fences, no commentary.`;
+
+/** Workers AI JSON Mode: keeps long outputs as parsed objects instead of raw strings (avoids broken JSON.parse). */
+const CHUNKS_RESPONSE_FORMAT = {
+  type: "json_schema" as const,
+  json_schema: {
+    type: "object",
+    properties: {
+      chunks: {
+        type: "array",
+        items: { type: "string" },
+        minItems: 1,
+      },
+    },
+    required: ["chunks"],
+  },
+};
 
 /** Best-effort string for Workers AI / upstream failures (e.g. InferenceUpstreamError, code 1031). */
 function formatAiError(e: unknown): string {
@@ -52,6 +73,19 @@ function formatAiError(e: unknown): string {
     return String((e as { message: unknown }).message);
   }
   return String(e);
+}
+
+/** Map raw chunking errors to client-safe messages (e.g. hide HTML 504 bodies from Workers AI). */
+export function userFacingChunkError(raw: string): string {
+  const s = raw.trim();
+  if (
+    /\b504\b/.test(s) ||
+    /Gateway\s*Time-?out/i.test(s) ||
+    /<title>\s*504/i.test(s)
+  ) {
+    return "Chunking timed out. Try shorter text, or try again in a moment.";
+  }
+  return raw;
 }
 
 function getLlmText(result: unknown): string {
@@ -119,13 +153,15 @@ export async function semanticChunkWithAi(env: Env, text: string): Promise<strin
           content: `Split this text into chunks as JSON:\n\n${text}`,
         },
       ],
-    });
+      response_format: CHUNKS_RESPONSE_FORMAT,
+    } as never);
   } catch (e) {
     throw new Error(`Workers AI: ${formatAiError(e)}`);
   }
 
   let chunks: string[];
   const structured = tryStructuredChunksFromAiResult(result);
+
   if (structured) {
     chunks = structured;
   } else {
@@ -218,8 +254,8 @@ export async function handleChunkRequest(
     if (createdNewSession) {
       await db.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
     }
-    const msg = e instanceof Error ? e.message : "Chunking failed";
-    return { ok: false, status: 502, error: msg };
+    const raw = e instanceof Error ? e.message : "Chunking failed";
+    return { ok: false, status: 502, error: userFacingChunkError(raw) };
   }
 
   await replaceChunksForSession(db, sessionId, chunks);

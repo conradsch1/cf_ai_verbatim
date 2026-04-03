@@ -3,6 +3,9 @@ import { PracticeInline } from "./PracticeInline";
 
 const SESSION_STORAGE_KEY = "cf_ai_verbatim_session_id";
 
+/** Keep in sync with MAX_TEXT_CHARS in backend/src/chunk.ts */
+const MAX_MEMORIZE_CHARS = 1_000;
+
 type ChunkResponse =
   | { ok: true; sessionId: string; chunks: string[] }
   | { ok: false; error: string };
@@ -50,6 +53,8 @@ export default function App() {
 
   const practicing = !!(practice && !practice.completedSession);
   const showMemorizationAndChunks = !practicing || peekSource;
+  const charCount = text.length;
+  const overCharLimit = charCount > MAX_MEMORIZE_CHARS;
 
   useEffect(() => {
     const stored = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -220,6 +225,18 @@ export default function App() {
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               placeholder="Long passage, speech, creed…"
             />
+            <p
+              className={`text-sm tabular-nums ${
+                overCharLimit
+                  ? "font-medium text-red-400"
+                  : "text-slate-500"
+              }`}
+              aria-live="polite"
+            >
+              {charCount.toLocaleString()} / {MAX_MEMORIZE_CHARS.toLocaleString()}{" "}
+              characters
+              {overCharLimit ? " — over limit; shorten text to chunk." : ""}
+            </p>
           </div>
         )}
 
@@ -227,7 +244,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => void submitChunk()}
-            disabled={loading || !text.trim()}
+            disabled={loading || !text.trim() || overCharLimit}
             className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Chunking…" : "Chunk with AI"}
